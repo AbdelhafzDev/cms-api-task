@@ -66,6 +66,7 @@ The `wiki/` folder contains:
 
 - **`CMS_API_collection.json`** — Postman / Apidog collection with all endpoints, auto-token management, and i18n support (`Accept-Language: en|ar`)
 - **`architecture.excalidraw`** — Architecture user journey diagram (open at [excalidraw.com](https://excalidraw.com))
+- **`erd.mmd`** — Database ERD diagram (open with any Mermaid viewer or paste at [mermaid.live](https://mermaid.live))
 
 ## Project Structure
 
