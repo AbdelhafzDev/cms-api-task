@@ -11,8 +11,6 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"cms-api/internal/config"
-	"cms-api/internal/infra/telemetry"
-	"cms-api/internal/transport/grpc/interceptor"
 )
 
 type Server struct {
@@ -21,28 +19,10 @@ type Server struct {
 	cfg    *config.Config
 }
 
-func NewServer(cfg *config.Config, log *zap.Logger, tracer *telemetry.Tracer) *Server {
-	unaryInterceptors := []grpc.UnaryServerInterceptor{}
-	streamInterceptors := []grpc.StreamServerInterceptor{}
-	if tracer != nil && cfg.Telemetry.Enabled {
-		unaryInterceptors = append(unaryInterceptors, interceptor.UnaryTracing(tracer))
-		streamInterceptors = append(streamInterceptors, interceptor.StreamTracing(tracer))
-	}
-
-	unaryInterceptors = append(unaryInterceptors,
-		interceptor.UnaryLogging(log),
-		interceptor.UnaryRecovery(log),
-	)
-	streamInterceptors = append(streamInterceptors,
-		interceptor.StreamLogging(log),
-		interceptor.StreamRecovery(log),
-	)
-
+func NewServer(cfg *config.Config, log *zap.Logger) *Server {
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(cfg.GRPC.MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(cfg.GRPC.MaxSendMsgSize),
-		grpc.ChainUnaryInterceptor(unaryInterceptors...),
-		grpc.ChainStreamInterceptor(streamInterceptors...),
 	}
 
 	server := grpc.NewServer(opts...)
