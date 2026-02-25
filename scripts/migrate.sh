@@ -12,7 +12,7 @@ fi
 
 # Defaults
 MIGRATE_IMAGE=${MIGRATE_IMAGE:-migrate/migrate:v4.17.1}
-MIGRATE_NETWORK=${MIGRATE_NETWORK:-cms-api_cms-network}
+MIGRATE_NETWORK=${MIGRATE_NETWORK:-$(docker inspect cms-postgres --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null || echo "cms-api_cms-network")}
 
 DB_HOST=${DB_HOST:-postgres}
 DB_PORT=${DB_PORT:-5432}
