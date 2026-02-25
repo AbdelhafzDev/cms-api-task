@@ -1,0 +1,643 @@
+{
+	"info": {
+		"name": "CMS API",
+		"description": "Complete API collection for CMS Backend.\n\n## Setup\n1. Run `Login` request first — tokens are saved automatically.\n2. All authenticated requests use `{{access_token}}` from the collection variables.\n3. When the access token expires, run `Refresh Tokens` — it auto-updates both tokens.\n4. `{{base_url}}` defaults to `http://localhost:8080`.\n\n## Localization (i18n)\nError messages are localized based on the `Accept-Language` header.\n- The `{{language}}` variable controls the language (default: `en`).\n- Supported languages: `en` (English), `ar` (Arabic).\n- A collection-level pre-request script automatically sets `Accept-Language: {{language}}` on every request.\n- To switch language, change the `language` variable to `ar`.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "program_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "discovery_program_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "language",
+			"value": "en",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"var lang = pm.collectionVariables.get('language') || 'en';",
+					"pm.request.headers.upsert({",
+					"    key: 'Accept-Language',",
+					"    value: lang",
+					"});"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "health"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"pm.test('Body contains status', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('healthy');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Readiness Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/ready",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "ready"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"Admin@1234\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Save tokens', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.collectionVariables.set('access_token', json.data.access_token);",
+									"    pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"    console.log('Tokens saved. Access expires in ' + json.data.expires_in + 's');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Refresh Tokens",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "refresh"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Save refreshed tokens', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.collectionVariables.set('access_token', json.data.access_token);",
+									"    pm.collectionVariables.set('refresh_token', json.data.refresh_token);",
+									"    console.log('Tokens refreshed successfully');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "logout"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.test('Clear tokens', function () {",
+									"    pm.collectionVariables.set('access_token', '');",
+									"    pm.collectionVariables.set('refresh_token', '');",
+									"    console.log('Logged out — tokens cleared');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Programs (Admin)",
+			"item": [
+				{
+					"name": "List Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs?limit=20&cursor=",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs"],
+							"query": [
+								{ "key": "limit", "value": "20" },
+								{ "key": "cursor", "value": "", "description": "Omit or leave empty for first page" }
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has items array', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.items).to.be.an('array');",
+									"",
+									"    // Save first program ID for subsequent requests",
+									"    if (json.data.items.length > 0) {",
+									"        pm.collectionVariables.set('program_id', json.data.items[0].id);",
+									"        console.log('Saved program_id: ' + json.data.items[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Program",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"New Test Program\",\n  \"description\": \"A test program created via Postman.\",\n  \"program_type\": \"podcast\",\n  \"duration\": \"01:30:00\",\n  \"thumbnail\": \"https://example.com/thumb.jpg\",\n  \"video_url\": \"https://example.com/video.mp4\",\n  \"status\": \"active\",\n  \"category_id\": 1,\n  \"language_id\": 1\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Save created program', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.id).to.be.a('string');",
+									"    pm.expect(json.data.status).to.eql('active');",
+									"    pm.collectionVariables.set('program_id', json.data.id);",
+									"    console.log('Created program: ' + json.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Create Program (Minimal)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Minimal Program\",\n  \"program_type\": \"podcast\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Defaults to active status', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.data.status).to.eql('active');",
+									"    pm.collectionVariables.set('program_id', json.data.id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Program by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs/{{program_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs", "{{program_id}}"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Returns correct program', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.id).to.eql(pm.collectionVariables.get('program_id'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Update Program",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Program Title\",\n  \"status\": \"inactive\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs/{{program_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs", "{{program_id}}"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Program updated', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.title).to.eql('Updated Program Title');",
+									"    pm.expect(json.data.status).to.eql('inactive');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Delete Program (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs/{{program_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs", "{{program_id}}"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 204', function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Deleted Program (Expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/programs/{{program_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "programs", "{{program_id}}"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404 — soft-deleted program not found', function () {",
+									"    pm.response.to.have.status(404);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Discovery (Public)",
+			"item": [
+				{
+					"name": "Browse Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/discover/programs?limit=20&cursor=",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "discover", "programs"],
+							"query": [
+								{ "key": "limit", "value": "20" },
+								{ "key": "cursor", "value": "", "description": "Omit for first page" }
+							]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has items', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.items).to.be.an('array');",
+									"",
+									"    if (json.data.items.length > 0) {",
+									"        pm.collectionVariables.set('discovery_program_id', json.data.items[0].id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Get Program by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/discover/programs/{{discovery_program_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "discover", "programs", "{{discovery_program_id}}"]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Returns program', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.id).to.eql(pm.collectionVariables.get('discovery_program_id'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Search Programs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/discover/programs/search?q=podcast&page=1&per_page=20",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "discover", "programs", "search"],
+							"query": [
+								{ "key": "q", "value": "podcast" },
+								{ "key": "type", "value": "podcast", "disabled": true },
+								{ "key": "category", "value": "", "disabled": true },
+								{ "key": "language", "value": "ar", "disabled": true },
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "20" }
+							]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has search results', function () {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.items).to.be.an('array');",
+									"    pm.expect(json.data.query).to.be.a('string');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "Search with Filters",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/discover/programs/search?q=podcast&type=podcast&language=ar&page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "discover", "programs", "search"],
+							"query": [
+								{ "key": "q", "value": "podcast" },
+								{ "key": "type", "value": "podcast" },
+								{ "key": "language", "value": "ar" },
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "10" }
+							]
+						},
+						"auth": { "type": "noauth" }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

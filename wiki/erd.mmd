@@ -1,0 +1,115 @@
+erDiagram
+    categories {
+      bigserial id PK
+      character_varying(100) name
+      character_varying(120) slug
+      text description
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    import_logs {
+      uuid id PK
+      bigint source_id FK
+      uuid triggered_by FK
+      character_varying(15) status
+      integer records_imported
+      text error_message
+      timestamptz started_at
+      timestamptz finished_at
+      timestamptz created_at
+    }
+    import_logs }o--o| import_sources : import_logs_source_id_fkey
+    import_logs }o--o| users : import_logs_triggered_by_fkey
+    import_sources {
+      bigserial id PK
+      character_varying(100) name
+      character_varying(30) source_type
+      character_varying(2048) base_url
+      boolean is_active
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    languages {
+      bigserial id PK
+      character_varying(50) name
+      character_varying(10) code
+    }
+    permissions {
+      uuid id PK
+      character_varying(100) code
+    }
+    programs {
+      uuid id PK
+      character_varying(255) title
+      text description
+      character_varying(20) program_type
+      interval duration
+      timestamptz published_at
+      character_varying(2048) thumbnail
+      character_varying(2048) video_url
+      character_varying(100) external_id
+      timestamptz deleted_at
+      character_varying(15) status
+      bigint category_id FK
+      bigint language_id FK
+      bigint import_source_id FK
+      uuid created_by FK
+      uuid updated_by FK
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    programs }o--o| categories : programs_category_id_fkey
+    programs }o--o| users : programs_created_by_fkey
+    programs }o--o| import_sources : programs_import_source_id_fkey
+    programs }o--o| languages : programs_language_id_fkey
+    programs }o--o| users : programs_updated_by_fkey
+    refresh_tokens {
+      uuid id PK
+      uuid user_id FK
+      character_varying(64) token_hash
+      timestamptz expires_at
+      timestamptz revoked_at
+      timestamptz created_at
+    }
+    refresh_tokens }o--o| users : refresh_tokens_user_id_fkey
+    role_permissions {
+      uuid role_id PK,FK
+      uuid permission_id PK,FK
+    }
+    role_permissions }o--o| permissions : role_permissions_permission_id_fkey
+    role_permissions }o--o| roles : role_permissions_role_id_fkey
+    roles {
+      uuid id PK
+      character_varying(50) name
+    }
+    schema_migrations {
+      bigint version PK
+      boolean dirty
+    }
+    search_index_jobs {
+      uuid id PK
+      uuid program_id
+      character_varying(10) action
+      character_varying(15) status
+      integer attempts
+      integer max_attempts
+      text last_error
+      timestamptz scheduled_at
+      timestamptz processed_at
+      timestamptz created_at
+      timestamptz updated_at
+    }
+    user_roles {
+      uuid user_id PK,FK
+      uuid role_id PK,FK
+    }
+    user_roles }o--o| roles : user_roles_role_id_fkey
+    user_roles }o--o| users : user_roles_user_id_fkey
+    users {
+      uuid id PK
+      character_varying(255) email
+      character_varying(255) password_hash
+      character_varying(50) status
+      timestamptz created_at
+      timestamptz deleted_at
+    }

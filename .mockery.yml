@@ -1,0 +1,56 @@
+# Mockery configuration
+# Generate mocks: mockery
+# Install: go install github.com/vektra/mockery/v2@latest
+
+with-expecter: true
+testonly: true
+dir: "{{ .InterfaceDir }}/mocks"
+outpkg: mocks
+filename: "mock_{{ .InterfaceName | snakecase }}.go"
+mockname: "Mock{{ .InterfaceName }}"
+
+packages:
+  cms-api/internal/modules/auth/repo:
+    interfaces:
+      AuthRepository:
+
+  cms-api/internal/modules/auth/service:
+    interfaces:
+      AuthService:
+
+  cms-api/internal/modules/user/repo:
+    interfaces:
+      UserRepository:
+
+  cms-api/internal/modules/user/service:
+    interfaces:
+      UserService:
+
+  cms-api/internal/modules/conversation/repo:
+    interfaces:
+      ConversationRepository:
+
+  cms-api/internal/modules/conversation/service:
+    interfaces:
+      ConversationService:
+
+  cms-api/internal/modules/message/repo:
+    interfaces:
+      MessageRepository:
+
+  cms-api/internal/modules/message/service:
+    interfaces:
+      MessageService:
+
+  cms-api/internal/infra/cache:
+    interfaces:
+      Cache:
+
+  cms-api/internal/infra/search:
+    interfaces:
+      Searcher:
+      Indexer:
+
+  cms-api/internal/infra/storage:
+    interfaces:
+      Storage:

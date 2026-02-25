@@ -1,0 +1,934 @@
+openapi: 3.1.0
+info:
+  title: CMS API
+  description: Backend API for CMS application
+  version: 1.0.0
+  contact:
+    name: Thmanyah Team
+
+servers:
+  - url: /
+    description: API
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Auth
+    description: Authentication endpoints
+  - name: Discovery
+    description: Public discovery endpoints for searching and browsing programs
+  - name: Programs
+    description: Program management (admin CMS)
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns the health status of the service.
+      operationId: healthCheck
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+
+  /api/v1/ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Returns the readiness status of the service.
+      operationId: readinessCheck
+      security: []
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ready
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: Authenticate a user with email and password. Returns access and refresh tokens.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Successfully authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccessResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh tokens
+      description: Exchange a valid refresh token for a new access and refresh token pair.
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccessResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Revoke a refresh token to end the session.
+      operationId: logout
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "204":
+          description: Successfully logged out
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/discover/programs/search:
+    get:
+      tags: [Discovery]
+      summary: Search programs
+      description: Full-text search across published programs using MeiliSearch. Supports filtering by type, category, and language.
+      operationId: searchPrograms
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 255
+          example: "daily podcast"
+        - name: type
+          in: query
+          description: Filter by program type
+          schema:
+            type: string
+            enum: [podcast, documentary]
+          example: podcast
+        - name: category
+          in: query
+          description: Filter by category name
+          schema:
+            type: string
+            maxLength: 255
+          example: "News"
+        - name: language
+          in: query
+          description: Filter by language code
+          schema:
+            type: string
+            maxLength: 50
+          example: "ar"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverySearchSuccessResponse"
+        "400":
+          description: Validation error (e.g. missing q parameter)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /api/v1/discover/programs:
+    get:
+      tags: [Discovery]
+      summary: Browse programs
+      description: Returns a cursor-paginated list of published programs ordered by publication date.
+      operationId: browsePrograms
+      security: []
+      parameters:
+        - name: cursor
+          in: query
+          description: Opaque cursor returned by a previous response (`next_cursor`). Omit for the first page.
+          schema:
+            type: string
+          example: ""
+        - name: limit
+          in: query
+          description: Maximum number of items to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        "200":
+          description: Paginated list of published programs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryListSuccessResponse"
+
+  /api/v1/discover/programs/{id}:
+    get:
+      tags: [Discovery]
+      summary: Get program by ID
+      description: Returns a single active program by its UUID.
+      operationId: getDiscoveryProgram
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "019539a2-b826-7640-9a20-e2b6c8e12345"
+      responses:
+        "200":
+          description: Program details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoveryProgramSuccessResponse"
+        "400":
+          description: Invalid program ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/programs:
+    get:
+      tags: [Programs]
+      summary: List programs
+      description: Returns a cursor-paginated list of programs. Requires admin or editor role.
+      operationId: listPrograms
+      parameters:
+        - name: cursor
+          in: query
+          description: Opaque cursor returned by a previous response (`next_cursor`). Omit for the first page.
+          schema:
+            type: string
+          example: ""
+        - name: limit
+          in: query
+          description: Maximum number of items to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          example: 20
+      responses:
+        "200":
+          description: Paginated list of programs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramListSuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      tags: [Programs]
+      summary: Create a program
+      description: Create a new program. Requires admin or editor role.
+      operationId: createProgram
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProgramRequest"
+      responses:
+        "201":
+          description: Program created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramSuccessResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/programs/{id}:
+    get:
+      tags: [Programs]
+      summary: Get a program
+      description: Get a program by ID. Requires admin or editor role.
+      operationId: getProgram
+      parameters:
+        - $ref: "#/components/parameters/ProgramID"
+      responses:
+        "200":
+          description: Program details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramSuccessResponse"
+        "400":
+          description: Invalid program ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    put:
+      tags: [Programs]
+      summary: Update a program
+      description: Partially update a program. Only provided fields are updated. Requires admin or editor role.
+      operationId: updateProgram
+      parameters:
+        - $ref: "#/components/parameters/ProgramID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProgramRequest"
+      responses:
+        "200":
+          description: Program updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgramSuccessResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      tags: [Programs]
+      summary: Delete a program
+      description: Soft-delete a program (sets deleted_at). Requires admin role.
+      operationId: deleteProgram
+      parameters:
+        - $ref: "#/components/parameters/ProgramID"
+      responses:
+        "204":
+          description: Program deleted
+        "400":
+          description: Invalid program ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Insufficient permissions (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Program not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ProgramID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: 019539a2-b826-7640-9a20-e2b6c8e12345
+
+  schemas:
+    # --- Auth Requests ---
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@test.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: Admin@1234
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          example: dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+
+    LogoutRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          example: dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+
+    # --- Auth Responses ---
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIs...
+        refresh_token:
+          type: string
+          example: dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4...
+        token_type:
+          type: string
+          example: Bearer
+        expires_in:
+          type: integer
+          description: Access token TTL in seconds
+          example: 900
+        refresh_expires_in:
+          type: integer
+          description: Refresh token TTL in seconds
+          example: 604800
+
+    # --- Program Requests ---
+    CreateProgramRequest:
+      type: object
+      required: [title, program_type]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: "The Daily Podcast"
+        description:
+          type: string
+          example: "A daily news podcast covering the latest events."
+        program_type:
+          type: string
+          enum: [podcast, documentary]
+          example: podcast
+        duration:
+          type: string
+          description: ISO 8601 duration / PostgreSQL interval
+          example: "01:30:00"
+        thumbnail:
+          type: string
+          format: uri
+          maxLength: 2048
+          example: "https://example.com/thumb.jpg"
+        video_url:
+          type: string
+          format: uri
+          maxLength: 2048
+          example: "https://example.com/video.mp4"
+        status:
+          type: string
+          enum: [active, inactive]
+          default: active
+          example: active
+        category_id:
+          type: integer
+          format: int64
+          example: 1
+        language_id:
+          type: integer
+          format: int64
+          example: 1
+
+    UpdateProgramRequest:
+      type: object
+      description: All fields are optional. Only provided fields are updated.
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: "Updated Title"
+        description:
+          type: string
+          example: "Updated description."
+        program_type:
+          type: string
+          enum: [podcast, documentary]
+        duration:
+          type: string
+          example: "02:00:00"
+        thumbnail:
+          type: string
+          format: uri
+          maxLength: 2048
+        video_url:
+          type: string
+          format: uri
+          maxLength: 2048
+        status:
+          type: string
+          enum: [active, inactive]
+        category_id:
+          type: integer
+          format: int64
+        language_id:
+          type: integer
+          format: int64
+
+    # --- Program Responses ---
+    ProgramResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "019539a2-b826-7640-9a20-e2b6c8e12345"
+        title:
+          type: string
+          example: "The Daily Podcast"
+        description:
+          type: string
+          example: "A daily news podcast."
+        program_type:
+          type: string
+          enum: [podcast, documentary]
+          example: podcast
+        duration:
+          type: string
+          nullable: true
+          example: "01:30:00"
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        thumbnail:
+          type: string
+          example: "https://example.com/thumb.jpg"
+        video_url:
+          type: string
+          example: "https://example.com/video.mp4"
+        status:
+          type: string
+          enum: [active, inactive]
+          example: active
+        category_id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        category_name:
+          type: string
+          nullable: true
+          example: "News"
+        language_id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        language_code:
+          type: string
+          nullable: true
+          example: "ar"
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProgramListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgramResponse"
+        next_cursor:
+          type: string
+          description: Opaque cursor for fetching the next page. Empty when there are no more results.
+          example: "MjAyNi0wMS0xNVQxMDowMDowMFp8MDE5NTM5YTItYjgyNi03NjQwLTlhMjAtZTJiNmM4ZTEyMzQ1"
+        has_next:
+          type: boolean
+          example: true
+
+    # --- Discovery Responses ---
+    DiscoveryProgramResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "019539a2-b826-7640-9a20-e2b6c8e12345"
+        title:
+          type: string
+          example: "The Daily Podcast"
+        description:
+          type: string
+          example: "A daily news podcast."
+        program_type:
+          type: string
+          enum: [podcast, documentary]
+          example: podcast
+        duration:
+          type: string
+          nullable: true
+          example: "01:30:00"
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        thumbnail:
+          type: string
+          example: "https://example.com/thumb.jpg"
+        video_url:
+          type: string
+          example: "https://example.com/video.mp4"
+        category_name:
+          type: string
+          nullable: true
+          example: "News"
+        language_code:
+          type: string
+          nullable: true
+          example: "ar"
+
+    DiscoverySearchProgramResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "019539a2-b826-7640-9a20-e2b6c8e12345"
+        title:
+          type: string
+          example: "The Daily Podcast"
+        description:
+          type: string
+          example: "A daily news podcast."
+        program_type:
+          type: string
+          enum: [podcast, documentary]
+          example: podcast
+        duration:
+          type: string
+          nullable: true
+          example: "01:30:00"
+        published_at:
+          type: string
+          nullable: true
+          example: "2024-01-15T10:00:00Z"
+        category:
+          type: string
+          nullable: true
+          example: "News"
+        language:
+          type: string
+          nullable: true
+          example: "ar"
+        thumbnail:
+          type: string
+          example: "https://example.com/thumb.jpg"
+        video_url:
+          type: string
+          example: "https://example.com/video.mp4"
+
+    DiscoveryListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoveryProgramResponse"
+        next_cursor:
+          type: string
+          description: Opaque cursor for fetching the next page. Empty when there are no more results.
+          example: "MjAyNi0wMS0xNVQxMDowMDowMFp8MDE5NTM5YTItYjgyNi03NjQwLTlhMjAtZTJiNmM4ZTEyMzQ1"
+        has_next:
+          type: boolean
+          example: true
+
+    DiscoverySearchResultResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverySearchProgramResponse"
+        query:
+          type: string
+          example: "daily podcast"
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+        estimated_total:
+          type: integer
+          format: int64
+          example: 15
+
+    # --- Envelope Responses ---
+    LoginSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/LoginResponse"
+
+    DiscoveryProgramSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/DiscoveryProgramResponse"
+
+    DiscoveryListSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/DiscoveryListResponse"
+
+    DiscoverySearchSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/DiscoverySearchResultResponse"
+
+    ProgramSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/ProgramResponse"
+
+    ProgramListSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: "#/components/schemas/ProgramListResponse"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: UNAUTHORIZED
+            message:
+              type: string
+              example: Invalid credentials
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Validation failed
+            details:
+              type: object
+              properties:
+                validation:
+                  type: string
+                  example: "email: required; password: min=8"
+
+security:
+  - BearerAuth: []
