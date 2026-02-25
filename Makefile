@@ -57,12 +57,12 @@ migrate-down: ## Run database migrations down
 	./scripts/migrate.sh down ${N:-1}
 
 .PHONY: up
-up: ## Start all services
-	docker compose up -d
+up: ## Start all services (including tools: Jaeger, Adminer)
+	docker compose --profile tools up -d
 
 .PHONY: down
 down: ## Stop all services
-	docker compose down
+	docker compose --profile tools down
 
 .PHONY: erd
 erd: ## Generate ERD diagram to wiki/erd.mmd

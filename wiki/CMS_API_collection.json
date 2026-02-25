@@ -573,7 +573,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["api", "v1", "discover", "programs", "search"],
 							"query": [
-								{ "key": "q", "value": "podcast" },
+								{ "key": "q", "value": "بودكاست" },
 								{ "key": "type", "value": "podcast", "disabled": true },
 								{ "key": "category", "value": "", "disabled": true },
 								{ "key": "language", "value": "ar", "disabled": true },
@@ -614,7 +614,7 @@
 							"host": ["{{base_url}}"],
 							"path": ["api", "v1", "discover", "programs", "search"],
 							"query": [
-								{ "key": "q", "value": "podcast" },
+								{ "key": "q", "value": "بودكاست" },
 								{ "key": "type", "value": "podcast" },
 								{ "key": "language", "value": "ar" },
 								{ "key": "page", "value": "1" },
